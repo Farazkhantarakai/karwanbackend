@@ -29,7 +29,7 @@ public class User {
     @Column
     private String password;
 
-    @Column(name = "image_url")
+    @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)
@@ -37,8 +37,9 @@ public class User {
     @Builder.Default
     private AuthProvider provider = AuthProvider.LOCAL;
 
-    @Column(name = "provider_id")
+    @Column(name = "provider_id", columnDefinition = "TEXT")
     private String providerId;
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
