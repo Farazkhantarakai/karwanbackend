@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,14 +28,26 @@ import java.io.IOException;
  * 
  * You can modify or extend the custom validation rules in doFilterInternal as needed.
  */
+import java.time.Instant;
+
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    @Autowired
-    private JwtUtils jwtUtils;
 
-    @Autowired
-    private CustomUserDetailsService customUserDetailsService;
+    private final JwtUtils jwtUtils;
+
+
+    private final RedisTemplate<String,String> redisTemplate;
+
+
+    private final CustomUserDetailsService customUserDetailsService;
+
+    JwtAuthenticationFilter(JwtUtils jwtUtils,RedisTemplate<String,String> redisTemplate,CustomUserDetailsService customUserDetailsService){
+        this.jwtUtils=jwtUtils;
+        this.redisTemplate=redisTemplate;
+        this.customUserDetailsService=customUserDetailsService;
+
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -44,14 +57,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // 1. Extract JWT token from header
             String jwt = parseJwt(request);
 
-            // 2. Validate token & set authentication in Security Context
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
+                // 2. Redis Blacklist Check
+                boolean isBlacklisted = false;
+                try {
+                    isBlacklisted = Boolean.TRUE.equals(redisTemplate.hasKey("auth:blacklist:" + jwt));
+                } catch (Exception ex) {
+                    logger.warn("Could not check Redis blacklist for token: " + ex.getMessage());
+                }
+
+                if (isBlacklisted) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.setCharacterEncoding("UTF-8");
+                    response.getWriter().write("{\"success\":false,\"error\":\"Token has been revoked. Please log in again.\"}");
+                    return;
+                }
+
                 String username = jwtUtils.getUsernameFromJwtToken(jwt);
 
-                // 3. Load user details
+                // Load user details
                 UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
 
-                // 4. Create authentication token
+                // Create authentication token
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,
@@ -61,7 +89,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // 5. Set SecurityContext
+                // Set SecurityContext
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
@@ -71,6 +99,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // Continue filter chain
         filterChain.doFilter(request, response);
     }
+
+
 
     /**
      * Helper method to extract Bearer JWT token from HTTP request header.

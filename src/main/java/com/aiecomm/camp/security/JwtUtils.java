@@ -53,21 +53,52 @@ public class JwtUtils {
     }
 
     public String getUsernameFromJwtToken(String token) {
+        String cleanToken = cleanToken(token);
         Claims claims = Jwts.parser()
                 .verifyWith(getSigningKey())
                 .build()
-                .parseSignedClaims(token)
+                .parseSignedClaims(cleanToken)
                 .getPayload();
 
         return claims.getSubject();
     }
 
+    public java.time.Instant getExpirationDateFromJwtToken(String token) {
+        String cleanToken = cleanToken(token);
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey())
+                .build()
+                .parseSignedClaims(cleanToken)
+                .getPayload();
+
+        return claims.getExpiration().toInstant();
+    }
+
+    public java.time.Instant getIssuedAtFromJwtToken(String token) {
+        String cleanToken = cleanToken(token);
+        if (cleanToken == null) return null;
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(cleanToken)
+                    .getPayload();
+            Date issuedAt = claims.getIssuedAt();
+            return issuedAt != null ? issuedAt.toInstant() : null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+
     public boolean validateJwtToken(String authToken) {
+        String cleanToken = cleanToken(authToken);
+        if (cleanToken == null) return false;
         try {
             Jwts.parser()
                     .verifyWith(getSigningKey())
                     .build()
-                    .parseSignedClaims(authToken);
+                    .parseSignedClaims(cleanToken);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             // Invalid JWT signature, expired, malformed, or unsupported
@@ -75,7 +106,17 @@ public class JwtUtils {
         }
     }
 
+    public String cleanToken(String token) {
+        if (token == null) return null;
+        String trimmed = token.trim();
+        if (trimmed.startsWith("Bearer ")) {
+            return trimmed.substring(7).trim();
+        }
+        return trimmed;
+    }
+
     public long getJwtExpirationMs() {
         return jwtExpirationMs;
     }
 }
+

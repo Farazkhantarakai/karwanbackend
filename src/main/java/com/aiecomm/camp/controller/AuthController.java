@@ -70,4 +70,25 @@ public class AuthController {
         UserDto userDto = authService.getCurrentUser(userPrincipal.getEmail());
         return ResponseEntity.ok(userDto);
     }
+
+    /**
+     * User Logout & Token Blacklist Endpoint
+     * POST /api/auth/logout
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<java.util.Map<String, Object>> logout(
+            jakarta.servlet.http.HttpServletRequest httpRequest,
+            @RequestBody(required = false) LogoutRequest logoutRequest
+    ) {
+        String authHeader = httpRequest.getHeader("Authorization");
+        String refreshToken = logoutRequest != null ? logoutRequest.getRefreshToken() : null;
+
+        authService.logout(authHeader, refreshToken);
+
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("message", "Successfully logged out. Tokens have been blacklisted.");
+        return ResponseEntity.ok(response);
+    }
 }
+

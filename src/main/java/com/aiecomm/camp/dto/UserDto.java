@@ -27,7 +27,7 @@ public class UserDto {
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
-                .imageUrl(user.getImageUrl())
+//                .imageUrl(user.getImageUrl())
                 .provider(user.getProvider())
                 .role(user.getRole())
                 .build();
