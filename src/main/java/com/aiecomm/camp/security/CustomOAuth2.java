@@ -1,8 +1,8 @@
 package com.aiecomm.camp.security;
 
-import com.aiecomm.camp.entity.AuthProvider;
-import com.aiecomm.camp.entity.User;
-import com.aiecomm.camp.repository.UserRepository;
+import com.aiecomm.camp.modules.auth.entity.AuthProvider;
+import com.aiecomm.camp.modules.user.entity.User;
+import com.aiecomm.camp.modules.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;

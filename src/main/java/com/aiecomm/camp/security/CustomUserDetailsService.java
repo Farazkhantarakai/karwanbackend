@@ -1,7 +1,7 @@
 package com.aiecomm.camp.security;
 
-import com.aiecomm.camp.entity.User;
-import com.aiecomm.camp.repository.UserRepository;
+import com.aiecomm.camp.modules.user.entity.User;
+import com.aiecomm.camp.modules.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

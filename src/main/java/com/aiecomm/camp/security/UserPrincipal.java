@@ -1,6 +1,6 @@
 package com.aiecomm.camp.security;
 
-import com.aiecomm.camp.entity.User;
+import com.aiecomm.camp.modules.user.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
