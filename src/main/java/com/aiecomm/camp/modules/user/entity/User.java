@@ -53,11 +53,6 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @Column(name = "trail_start_date", nullable = false)
-    private Instant trailStartedAt;
-
-    @Column(name = "trail_end_date", nullable = false)
-    private Instant trailEndAt;
 
     @Column(name = "subscription_started_at", nullable = true)
     private Instant subscriptionStartedAt;
@@ -69,13 +64,6 @@ public class User {
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
-
-        if (this.trailStartedAt == null) {
-            this.trailStartedAt = Instant.now();
-        }
-        if (this.trailEndAt == null) {
-            this.trailEndAt = Instant.now().plus(3, java.time.temporal.ChronoUnit.DAYS);
-        }
     }
 
     @PreUpdate
