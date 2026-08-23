@@ -1,5 +1,6 @@
 package com.aiecomm.camp.modules.store.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -9,6 +10,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+//these two annotation are for preventing bidirectional mapping
 @ToString(exclude = "store")
 @EqualsAndHashCode(exclude = "store")
 public class Settings {
@@ -19,6 +21,7 @@ public class Settings {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "store_id", nullable = false, unique = true)
+    @JsonBackReference
     private Store store;
 
     @Column(name = "country_code")

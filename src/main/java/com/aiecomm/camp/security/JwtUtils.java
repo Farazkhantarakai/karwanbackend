@@ -9,6 +9,9 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.UUID;
 
 @Component
 public class JwtUtils {
@@ -27,24 +30,28 @@ public class JwtUtils {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
-    public String generateAccessToken(Authentication authentication) {
+    public String generateAccessToken(Authentication authentication,UUID tenantId) {
         UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
-        return generateTokenFromUsername(userPrincipal.getUsername(), jwtExpirationMs);
+        return generateTokenFromUsername(userPrincipal.getUsername(), jwtExpirationMs,tenantId);
     }
 
-    public String generateAccessTokenFromEmail(String email) {
-        return generateTokenFromUsername(email, jwtExpirationMs);
+    public String generateAccessTokenFromEmail(String email, UUID tenantId) {
+        return generateTokenFromUsername(email, jwtExpirationMs,tenantId);
     }
 
-    public String generateRefreshTokenFromEmail(String email) {
-        return generateTokenFromUsername(email, jwtRefreshExpirationMs);
+    public String generateRefreshTokenFromEmail(String email,UUID tenantId) {
+        return generateTokenFromUsername(email, jwtRefreshExpirationMs,tenantId);
     }
 
-    public String generateTokenFromUsername(String username, long expirationMs) {
+    public String generateTokenFromUsername(String username, long expirationMs,UUID tenantId) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationMs);
+        HashMap<String,Object> map=new LinkedHashMap<>();
+        map.put("username",username);
+        map.put("tenantId",tenantId);
 
         return Jwts.builder()
+                .claims(map)
                 .subject(username)
                 .issuedAt(now)
                 .expiration(expiryDate)
@@ -117,6 +124,24 @@ public class JwtUtils {
 
     public long getJwtExpirationMs() {
         return jwtExpirationMs;
+    }
+
+    public UUID getTenantIdFromToken(String jwt) {
+        String token = cleanToken(jwt);
+        try {
+            Claims claims = Jwts.parser().verifyWith(getSigningKey()).build().parseSignedClaims(token).getPayload();
+            Object tenantIdObj = claims.get("tenantId");
+            if (tenantIdObj == null) {
+                return null;
+            }
+            if (tenantIdObj instanceof UUID) {
+                return (UUID) tenantIdObj;
+            }
+            return UUID.fromString(tenantIdObj.toString());
+        } catch (Exception e) {
+
+            return null;
+        }
     }
 }
 

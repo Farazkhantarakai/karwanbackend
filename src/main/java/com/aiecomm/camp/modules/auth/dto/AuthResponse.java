@@ -1,6 +1,7 @@
 package com.aiecomm.camp.modules.auth.dto;
 
 import com.aiecomm.camp.modules.user.dto.UserDto;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,4 +19,10 @@ public class AuthResponse {
     private String tokenType = "Bearer";
     private long expiresInSeconds;
     private UserDto user;
+
+    @JsonProperty("isNewUser")
+    private Boolean isNewUser;
+
+    @Builder.Default
+    private Boolean success = true;
 }

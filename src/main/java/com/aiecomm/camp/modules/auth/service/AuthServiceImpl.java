@@ -1,13 +1,33 @@
 package com.aiecomm.camp.modules.auth.service;
 
+import com.aiecomm.camp.NotificationService.BrevoNotificationImpl;
+import com.aiecomm.camp.NotificationService.NotifcationRequest;
+import com.aiecomm.camp.NotificationService.NotificationCache;
+import com.aiecomm.camp.NotificationService.NotificationResponse;
+import com.aiecomm.camp.NotificationService.dto.BrevoResponse;
+import com.aiecomm.camp.NotificationService.dto.BrevoTemplate;
+import com.aiecomm.camp.NotificationService.dto.Reciever;
+import com.aiecomm.camp.NotificationService.dto.Sender;
+import com.aiecomm.camp.NotificationService.entity.PlatformTemplate;
+import com.aiecomm.camp.NotificationService.enums.NotificationChannel;
+import com.aiecomm.camp.NotificationService.enums.NotificationEvent;
+import com.aiecomm.camp.common.exception.AccountExistsWithOAuthException;
+import com.aiecomm.camp.common.exception.EmailAlreadyExistsException;
 import com.aiecomm.camp.modules.auth.dto.*;
 import com.aiecomm.camp.modules.auth.entity.AuthProvider;
+import com.aiecomm.camp.modules.tenant.entity.Tenant;
+import com.aiecomm.camp.modules.tenant.entity.TenantUser;
+import com.aiecomm.camp.modules.tenant.serviceimpl.TenantServiceImpl;
 import com.aiecomm.camp.modules.user.entity.Role;
 import com.aiecomm.camp.modules.user.entity.User;
 import com.aiecomm.camp.modules.user.dto.UserDto;
 import com.aiecomm.camp.modules.user.repository.UserRepository;
 import com.aiecomm.camp.security.JwtUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -20,11 +40,13 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
+import java.security.SecureRandom;
 import java.time.Duration;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.random.RandomGenerator;
 
 @Service
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     @Autowired
@@ -37,10 +59,29 @@ public class AuthServiceImpl implements AuthService {
     private AuthenticationManager authenticationManager;
 
     @Autowired
+    private TenantServiceImpl tenantServiceImp;
+
+    @Autowired
     private JwtUtils jwtUtils;
 
     @Autowired
     private RedisTemplate<String, String> redisTemplate;
+
+    @Autowired
+    private NotificationCache notificationCache;
+
+    @Autowired
+    private BrevoNotificationImpl brevoNotificationImpl;
+
+
+    @Value("${platform-mail}")
+    private    String platformMail;
+    @Value("${platform-name}")
+    private    String platformName;
+
+
+
+    private Logger logger= LoggerFactory.getLogger(AuthServiceImpl.class);
 
     /**
      * Saves active access & refresh tokens into Redis with TTL matching their expiration.
@@ -123,14 +164,24 @@ public class AuthServiceImpl implements AuthService {
         if (existingUserOpt.isPresent()) {
             User existingUser = existingUserOpt.get();
             if (existingUser.getProvider() == AuthProvider.GOOGLE) {
-                throw new IllegalArgumentException("An account already exists with Google Sign-In for " + email + ". Please click 'Login with Google'.");
+                throw new AccountExistsWithOAuthException(
+                        "ACCOUNT_EXISTS_WITH_GOOGLE",
+                        "Account exists with Google Sign-In",
+                        "An account already exists with Google Sign-In for " + email + ". Please sign in with Google.",
+                        "GOOGLE"
+                );
             } else {
-                throw new IllegalArgumentException("Email address is already in use: " + email + ". Please log in instead.");
+                throw new EmailAlreadyExistsException(
+                        "EMAIL_ALREADY_EXISTS",
+                        "Email address is already in use.",
+                        "An account with this email already exists: " + email + ". Please log in instead.",
+                        "LOCAL"
+                );
             }
         }
 
         User user = User.builder()
-                .name(request.getName() != null ? request.getName().trim() : "Merchant")
+                .name(request.getName())
                 .email(email)
                 .password(passwordEncoder.encode(request.getPassword()))
                 .provider(AuthProvider.LOCAL)
@@ -138,9 +189,11 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         User savedUser = userRepository.save(user);
+     UUID tenantId=tenantServiceImp.createTenantForUser(savedUser);
 
-        String accessToken = jwtUtils.generateAccessTokenFromEmail(savedUser.getEmail());
-        String refreshToken = jwtUtils.generateRefreshTokenFromEmail(savedUser.getEmail());
+
+        String accessToken = jwtUtils.generateAccessTokenFromEmail(savedUser.getEmail(),tenantId);
+        String refreshToken = jwtUtils.generateRefreshTokenFromEmail(savedUser.getEmail(),tenantId);
         saveActiveTokens(savedUser.getEmail(), accessToken, refreshToken);
 
         return AuthResponse.builder()
@@ -149,6 +202,8 @@ public class AuthServiceImpl implements AuthService {
                 .tokenType("Bearer")
                 .expiresInSeconds(jwtUtils.getJwtExpirationMs() / 1000)
                 .user(UserDto.fromEntity(savedUser))
+                .isNewUser(true)
+                .success(true)
                 .build();
     }
 
@@ -161,7 +216,12 @@ public class AuthServiceImpl implements AuthService {
         if (userOptional.isPresent()) {
             User user = userOptional.get();
             if (user.getProvider() == AuthProvider.GOOGLE && !StringUtils.hasText(user.getPassword())) {
-                throw new IllegalArgumentException("This account was created using Google Sign-In. Please click 'Login with Google'.");
+                throw new AccountExistsWithOAuthException(
+                        "ACCOUNT_EXISTS_WITH_GOOGLE",
+                        "Account exists with Google Sign-In",
+                        "This account was created using Google Sign-In. Please sign in with Google.",
+                        "GOOGLE"
+                );
             }
         }
 
@@ -172,7 +232,12 @@ public class AuthServiceImpl implements AuthService {
             );
         } catch (BadCredentialsException ex) {
             if (userOptional.isPresent() && userOptional.get().getProvider() == AuthProvider.GOOGLE) {
-                throw new IllegalArgumentException("This account was created using Google Sign-In. Please click 'Login with Google'.");
+                throw new AccountExistsWithOAuthException(
+                        "ACCOUNT_EXISTS_WITH_GOOGLE",
+                        "Account exists with Google Sign-In",
+                        "This account was created using Google Sign-In. Please sign in with Google.",
+                        "GOOGLE"
+                );
             }
             throw new BadCredentialsException("Invalid email or password.");
         }
@@ -182,8 +247,10 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + email));
 
-        String accessToken = jwtUtils.generateAccessToken(authentication);
-        String refreshToken = jwtUtils.generateRefreshTokenFromEmail(user.getEmail());
+        UUID tenantId=tenantServiceImp.getUserTenantId(user);
+
+        String accessToken = jwtUtils.generateAccessToken(authentication,tenantId);
+        String refreshToken = jwtUtils.generateRefreshTokenFromEmail(user.getEmail(),tenantId);
         saveActiveTokens(user.getEmail(), accessToken, refreshToken);
 
         return AuthResponse.builder()
@@ -192,6 +259,8 @@ public class AuthServiceImpl implements AuthService {
                 .tokenType("Bearer")
                 .expiresInSeconds(jwtUtils.getJwtExpirationMs() / 1000)
                 .user(UserDto.fromEntity(user))
+                .isNewUser(false)
+                .success(true)
                 .build();
     }
 
@@ -240,17 +309,24 @@ public class AuthServiceImpl implements AuthService {
 
         Optional<User> userOptional = userRepository.findByEmail(email);
         User user;
+        boolean isNewUser = false;
 
         if (userOptional.isPresent()) {
             user = userOptional.get();
             if (user.getProvider() == AuthProvider.LOCAL) {
-                throw new IllegalArgumentException("An account already exists with email " + email + " using Email/Password. Please log in using your email and password.");
+                throw new EmailAlreadyExistsException(
+                        "EMAIL_ALREADY_EXISTS",
+                        "Email address is already in use with Password login.",
+                        "An account already exists with email " + email + " using Email/Password. Please log in using your email and password.",
+                        "LOCAL"
+                );
             }
             if (StringUtils.hasText(providerId)) {
                 user.setProviderId(providerId);
             }
             user = userRepository.save(user);
         } else {
+            isNewUser = true;
             user = User.builder()
                     .name(name)
                     .email(email)
@@ -261,8 +337,12 @@ public class AuthServiceImpl implements AuthService {
             user = userRepository.save(user);
         }
 
-        String accessToken = jwtUtils.generateAccessTokenFromEmail(user.getEmail());
-        String refreshToken = jwtUtils.generateRefreshTokenFromEmail(user.getEmail());
+     UUID tenantId =tenantServiceImp.createTenantForUser(user);
+
+
+        String accessToken = jwtUtils.generateAccessTokenFromEmail(user.getEmail(),tenantId);
+
+        String refreshToken = jwtUtils.generateRefreshTokenFromEmail(user.getEmail(),tenantId);
         saveActiveTokens(user.getEmail(), accessToken, refreshToken);
 
         return AuthResponse.builder()
@@ -271,6 +351,8 @@ public class AuthServiceImpl implements AuthService {
                 .tokenType("Bearer")
                 .expiresInSeconds(jwtUtils.getJwtExpirationMs() / 1000)
                 .user(UserDto.fromEntity(user))
+                .isNewUser(isNewUser)
+                .success(true)
                 .build();
     }
 
@@ -311,7 +393,9 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(email.trim().toLowerCase())
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + email));
 
-        String newAccessToken = jwtUtils.generateAccessTokenFromEmail(email);
+       UUID tenantId= tenantServiceImp.getUserTenantId(user);
+
+        String newAccessToken = jwtUtils.generateAccessTokenFromEmail(email,tenantId);
         saveActiveTokens(email, newAccessToken, null);
 
         return AuthResponse.builder()
@@ -358,5 +442,92 @@ public class AuthServiceImpl implements AuthService {
                 redisTemplate.delete("auth:user:active:" + email.trim().toLowerCase());
             } catch (Exception ignored) {}
         }
+    }
+
+    @Override
+    public void forgotPassword(UserDto userDto) {
+        if (userDto == null || !StringUtils.hasText(userDto.getEmail())) {
+            throw new IllegalArgumentException("User email is required");
+        }
+        String otp = generateOtp();
+        String normalizedEmail = userDto.getEmail().trim().toLowerCase();
+
+        PlatformTemplate template = notificationCache.getTemplate(NotificationEvent.PASSWORD_RESET, NotificationChannel.EMAIL);
+        if (template == null) {
+            logger.error("No template found for PASSWORD_RESET event in cache.");
+            throw new IllegalStateException("Email notification template is not configured. Please contact support.");
+        }
+
+        String context = template.getTemplateBody() != null
+                ? template.getTemplateBody().replace("${OTP}", otp)
+                : "Your verification code is: " + otp;
+
+        NotifcationRequest brevoTemplate = BrevoTemplate.builder()
+                .sender(Sender.builder().email(platformMail).name(platformName).build())
+                .to(Arrays.asList(Reciever.builder().email(normalizedEmail).name(userDto.getName()).build()))
+                .subject(template.getTemplateSubject() != null ? template.getTemplateSubject() : "Password Reset OTP")
+                .textContent(context)
+                .build();
+
+        NotificationResponse response = null;
+        try {
+            response = brevoNotificationImpl.sendMail(brevoTemplate);
+        } catch (Exception e) {
+            logger.error("Failed to send password reset email to " + normalizedEmail, e);
+            throw new IllegalStateException("Email delivery service is currently unavailable. Please try again later.");
+        }
+
+        if (response instanceof BrevoResponse && ((BrevoResponse) response).messageId() != null) {
+            // Email successfully sent -> Store OTP in Redis with 2-minute TTL
+            redisTemplate.opsForValue().set("otp:user:" + normalizedEmail, otp, Duration.ofMinutes(2));
+            logger.info("Password reset OTP successfully sent and cached for user: " + normalizedEmail);
+        } else {
+            logger.error("Email service did not return a valid messageId for " + normalizedEmail);
+            throw new IllegalStateException("Failed to deliver verification code to your email. Please try again later.");
+        }
+    }
+
+    @Override
+    public boolean checkOtp(String email, String otp) {
+        if (!StringUtils.hasText(email) || !StringUtils.hasText(otp)) {
+            return false;
+        }
+        String normalizedEmail = email.trim().toLowerCase();
+        String key = "otp:user:" + normalizedEmail;
+        Object cachedOtp = redisTemplate.opsForValue().get(key);
+        if (cachedOtp == null) {
+            return false;
+        }
+        return cachedOtp.toString().trim().equals(otp.trim());
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(String email, String otp, String newPassword) {
+        if (!StringUtils.hasText(email) || !StringUtils.hasText(otp) || !StringUtils.hasText(newPassword)) {
+            throw new IllegalArgumentException("Email, OTP, and new password are required");
+        }
+        String normalizedEmail = email.trim().toLowerCase();
+        boolean isValidOtp = checkOtp(normalizedEmail, otp);
+        if (!isValidOtp) {
+            throw new IllegalArgumentException("Invalid or expired OTP verification code");
+        }
+
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + normalizedEmail));
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Purge OTP and active session tokens from Redis
+        redisTemplate.delete("otp:user:" + normalizedEmail);
+        redisTemplate.delete("auth:user:active:" + normalizedEmail);
+    }
+
+    public String generateOtp() {
+        SecureRandom secureRandom = new SecureRandom();
+        // Generates a random number strictly between 100000 and 999999
+        int otp = 100000 + secureRandom.nextInt(900000);
+        return String.valueOf(otp);
     }
 }

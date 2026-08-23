@@ -16,4 +16,10 @@ public interface AuthService {
     UserDto getCurrentUser(String email);
 
     void logout(String accessToken, String refreshToken);
+
+    void forgotPassword(UserDto userDto);
+
+    boolean checkOtp(String email, String otp);
+
+    void resetPassword(String email, String otp, String newPassword);
 }

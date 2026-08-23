@@ -6,6 +6,7 @@ import com.aiecomm.camp.modules.user.dto.UserDto;
 import com.aiecomm.camp.security.UserPrincipal;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -25,7 +26,7 @@ public class AuthController {
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest signupRequest) {
         AuthResponse response = authService.signup(signupRequest);
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     /**
@@ -89,6 +90,60 @@ public class AuthController {
         java.util.Map<String, Object> response = new java.util.HashMap<>();
         response.put("success", true);
         response.put("message", "Successfully logged out. Tokens have been blacklisted.");
+        return ResponseEntity.ok(response);
+    }
+
+
+    /**
+     * Send Forgot Password OTP
+     * POST /api/auth/forgot
+     */
+    @PostMapping("/forgot")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        UserDto userDto = authService.getCurrentUser(request.getEmail());
+        if (userDto != null) {
+            authService.forgotPassword(userDto);
+        }
+
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("message", "If an account with this email exists, a verification code has been sent.");
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Verify OTP from Redis
+     * POST /api/auth/checkOtp
+     */
+    @PostMapping("/checkOtp")
+    public ResponseEntity<?> checkOtp(@Valid @RequestBody CheckOtpRequest request) {
+        boolean isExists = authService.checkOtp(request.getEmail(), request.getOtp());
+
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("isExists", isExists);
+
+        if (isExists) {
+            response.put("success", true);
+            response.put("message", "OTP verified successfully.");
+            return ResponseEntity.ok(response);
+        } else {
+            response.put("success", false);
+            response.put("message", "Invalid or expired verification code. Please request a new code.");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+        }
+    }
+
+    /**
+     * Reset Password using OTP
+     * POST /api/auth/reset-password
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getEmail(), request.getOtp(), request.getNewPassword());
+
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("success", true);
+        response.put("message", "Password has been successfully updated.");
         return ResponseEntity.ok(response);
     }
 }

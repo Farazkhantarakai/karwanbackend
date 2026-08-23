@@ -11,7 +11,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users",indexes = {})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -44,8 +44,6 @@ public class User {
     @Builder.Default
     private Role role = Role.ROLE_USER;
 
-    @Column(name = "business_purpose")
-    private String businessPurpose;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -54,11 +52,6 @@ public class User {
     private LocalDateTime updatedAt;
 
 
-    @Column(name = "subscription_started_at", nullable = true)
-    private Instant subscriptionStartedAt;
-
-    @Column(name = "subscription_ended_at", nullable = true)
-    private Instant subscriptionEndedAt;
 
     @PrePersist
     protected void onCreate() {

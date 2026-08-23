@@ -1,5 +1,6 @@
 package com.aiecomm.camp.common.exception;
 
+import com.aiecomm.camp.modules.auth.exception.TenantUserAlreadyExists;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -13,9 +14,44 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    @ExceptionHandler(EmailAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleEmailAlreadyExistsException(EmailAlreadyExistsException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", HttpStatus.CONFLICT.value());
+        body.put("code", ex.getCode() != null ? ex.getCode() : "EMAIL_ALREADY_EXISTS");
+        body.put("error", ex.getError() != null ? ex.getError() : "Email address is already in use.");
+        body.put("message", ex.getMessage());
+        body.put("provider", ex.getProvider() != null ? ex.getProvider() : "LOCAL");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
+    @ExceptionHandler(TenantUserAlreadyExists.class)
+    public ResponseEntity<Map<String,Object>>  handleEntityAlreadyExistsForUser(TenantUserAlreadyExists ex){
+
+        HashMap<String,Object> bucket=new HashMap<>();
+
+        bucket.put("Status",HttpStatus.CONFLICT);
+        bucket.put("message",ex.getMessage());
+
+        return  ResponseEntity.status(HttpStatus.CONFLICT).body(bucket);
+    }
+
+
+    @ExceptionHandler(AccountExistsWithOAuthException.class)
+    public ResponseEntity<Map<String, Object>> handleAccountExistsWithOAuthException(AccountExistsWithOAuthException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("status", HttpStatus.CONFLICT.value());
+        body.put("code", ex.getCode() != null ? ex.getCode() : "ACCOUNT_EXISTS_WITH_GOOGLE");
+        body.put("error", ex.getError() != null ? ex.getError() : "Account exists with Google Sign-In");
+        body.put("message", ex.getMessage());
+        body.put("provider", ex.getProvider() != null ? ex.getProvider() : "GOOGLE");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<Map<String, Object>> handleBadCredentialsException(BadCredentialsException ex) {
         Map<String, Object> body = new HashMap<>();
+        body.put("status", HttpStatus.UNAUTHORIZED.value());
         body.put("success", false);
         body.put("error", ex.getMessage() != null && !ex.getMessage().equalsIgnoreCase("Bad credentials") 
                 ? ex.getMessage() 
@@ -36,7 +72,17 @@ public class GlobalExceptionHandler {
         Map<String, Object> body = new HashMap<>();
         body.put("success", false);
         body.put("error", ex.getMessage());
+        body.put("message", ex.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalStateException(IllegalStateException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("success", false);
+        body.put("error", ex.getMessage());
+        body.put("message", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 
 @Builder
@@ -29,11 +30,20 @@ public class Tenant {
     @Builder.Default
    private OnboardingStatus onBoardingStatus=OnboardingStatus.NotOnboarded;
 
+    @OneToMany(mappedBy = "tenant")
+    private Set<TenantUser> tenantUsers;
+
     @Column(name = "Created_On",nullable = false)
     private Instant createdOn;
 
     @Column(name = "Updated_On",nullable = false)
     private Instant updatedOn;
+
+    @Column(name = "Created_By",nullable = false)
+    private String createdBy;
+
+    @Column(name = "Updated_By",nullable = false)
+    private String updatedBy;
 
 }
 

@@ -28,7 +28,7 @@ public class TenantUserDto {
                 .id(tenantUser.getId())
                 .userId(tenantUser.getUser() != null ? tenantUser.getUser().getId() : null)
                 .tenantId(tenantUser.getTenant() != null ? tenantUser.getTenant().getTenantId() : null)
-                .role(tenantUser.getRole())
+                .role(String.valueOf(tenantUser.getRole()))
                 .createdOn(tenantUser.getCreatedOn())
                 .updatedOn(tenantUser.getUpdatedOn())
                 .build();

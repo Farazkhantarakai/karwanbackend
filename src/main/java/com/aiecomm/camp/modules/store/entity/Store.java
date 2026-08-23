@@ -2,9 +2,12 @@ package com.aiecomm.camp.modules.store.entity;
 
 import com.aiecomm.camp.modules.order.entity.Order;
 import com.aiecomm.camp.modules.product.entity.Product;
+import com.aiecomm.camp.modules.store.StoreEnums.StoreStatus;
 import com.aiecomm.camp.modules.tenant.entity.Tenant;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
+import net.minidev.json.annotate.JsonIgnore;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -34,8 +37,9 @@ public class Store {
     @Column(name = "domainname")
     private String domainname;
 
-    @Column(name = "status")
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status",nullable = false)
+    private StoreStatus status;
 
     @Column(name = "trail_start")
     private Instant trailStart;
@@ -63,16 +67,24 @@ public class Store {
     @Builder.Default
     private List<Location> locations = new ArrayList<>();
 
-    @OneToOne(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToOne(mappedBy = "store", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private Settings settings;
-
-    @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
-    @Builder.Default
-    private List<Product> products = new ArrayList<>();
 
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL)
     @Builder.Default
+    private List<Product> products = new ArrayList<>();
+
+    @OneToMany(mappedBy = "store", cascade = CascadeType.ALL,orphanRemoval = true)
+    @Builder.Default
     private List<Order> orders = new ArrayList<>();
+
+    @Column(name = "Created_By",nullable = false)
+    private String createdBy;
+
+    @Column(name = "Updated_By",nullable = false)
+    private String updatedBy;
+
 
     @PrePersist
     protected void onCreate() {

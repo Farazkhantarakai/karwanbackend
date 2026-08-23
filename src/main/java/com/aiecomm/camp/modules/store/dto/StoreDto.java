@@ -1,5 +1,6 @@
 package com.aiecomm.camp.modules.store.dto;
 
+import com.aiecomm.camp.modules.store.StoreEnums.StoreStatus;
 import com.aiecomm.camp.modules.store.entity.Store;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,6 +28,10 @@ public class StoreDto {
     private Instant createdOn;
     private Instant updatedOn;
 
+
+
+
+
     public static StoreDto fromEntity(Store entity) {
         if (entity == null) return null;
         return StoreDto.builder()
@@ -34,7 +39,7 @@ public class StoreDto {
                 .tenantId(entity.getTenant() != null ? entity.getTenant().getTenantId() : null)
                 .storename(entity.getStorename())
                 .domainname(entity.getDomainname())
-                .status(entity.getStatus())
+                .status(entity.getStatus().toString())
                 .trailStart(entity.getTrailStart())
                 .trailEnd(entity.getTrailEnd())
                 .location(entity.getLocation())
