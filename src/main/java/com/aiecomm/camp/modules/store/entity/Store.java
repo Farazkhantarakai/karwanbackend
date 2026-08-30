@@ -4,6 +4,7 @@ import com.aiecomm.camp.modules.order.entity.Order;
 import com.aiecomm.camp.modules.product.entity.Product;
 import com.aiecomm.camp.modules.store.StoreEnums.StoreStatus;
 import com.aiecomm.camp.modules.tenant.entity.Tenant;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
@@ -41,6 +42,9 @@ public class Store {
     @Column(name = "status",nullable = false)
     private StoreStatus status;
 
+    @Column(name = "slug",length = 100)
+    String slug;
+
     @Column(name = "trail_start")
     private Instant trailStart;
 
@@ -61,6 +65,7 @@ public class Store {
 
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @JsonManagedReference
     private List<Domain> domains = new ArrayList<>();
 
     @OneToMany(mappedBy = "store", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -96,4 +101,14 @@ public class Store {
     protected void onUpdate() {
         this.updatedOn = Instant.now();
     }
+
+   public void  addDomain(Domain domain){
+        if(domain!=null){
+            this.domains.add(domain);
+            domain.setStore(this);
+        }
+
+   }
+
+
 }

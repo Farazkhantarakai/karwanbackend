@@ -1,7 +1,10 @@
 package com.aiecomm.camp.modules.store.entity;
 
+import com.aiecomm.camp.modules.store.StoreEnums.DomainStatus;
+import com.aiecomm.camp.modules.store.StoreEnums.SSLSTATUS;
 import jakarta.persistence.*;
 import lombok.*;
+import net.minidev.json.annotate.JsonIgnore;
 
 import java.time.Instant;
 
@@ -31,6 +34,31 @@ public class Domain {
 
     @Column(name = "created_on", nullable = false, updatable = false)
     private Instant createdOn;
+    @Column(name = "is_verified", nullable = false)
+    @Builder.Default
+    private Boolean isVerified = false;
+
+    @Column(name = "is_custom", nullable = false)
+    @Builder.Default
+    private Boolean isCustom = false;
+
+    @Column(name = "is_primary", nullable = false)
+    @Builder.Default
+    private Boolean isPrimary = false;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "domain_status",nullable = false)
+    private DomainStatus domainStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ssl_status",nullable = false)
+    private SSLSTATUS sslstatus;
+
+    @Column(name = "target",length = 100)
+    private String target;
+
+    @Column(name = "dns_configured")
+    private Boolean dnsConfigured;
 
     @Column(name = "updated_on")
     private Instant updatedOn;

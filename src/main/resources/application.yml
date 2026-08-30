@@ -47,6 +47,8 @@ brevo-url: https://api.brevo.com/v3/smtp/email
 platform-mail: farazkhantaraka@gmail.com
 platform-name: Karwan Commerce OS
 
+app-domain-suffix: .karwan.pk
+
 app:
   jwt:
     secret: ${JWT_SIGNATURE_KEY}

@@ -25,6 +25,7 @@ public class StoreDto {
     private Instant trailEnd;
     private String location;
     private String template;
+    private String slug;
     private Instant createdOn;
     private Instant updatedOn;
 
@@ -41,6 +42,7 @@ public class StoreDto {
                 .domainname(entity.getDomainname())
                 .status(entity.getStatus().toString())
                 .trailStart(entity.getTrailStart())
+                .slug(entity.getSlug())
                 .trailEnd(entity.getTrailEnd())
                 .location(entity.getLocation())
                 .template(entity.getTemplate())

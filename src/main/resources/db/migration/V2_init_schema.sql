@@ -29,4 +29,18 @@ CREATE TABLE platform_template (
         UNIQUE (event_type)
 );
 
+alter table stores add column slug varchar(100)
 
+
+ALTER TABLE domains
+ADD COLUMN is_verified BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE domains
+ADD COLUMN is_custom BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE domains
+ADD COLUMN is_primary BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE UNIQUE INDEX uk_domains_one_primary_per_store
+ON domains (store_id)
+WHERE is_primary = TRUE;

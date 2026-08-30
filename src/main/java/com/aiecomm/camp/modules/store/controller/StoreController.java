@@ -1,11 +1,15 @@
 package com.aiecomm.camp.modules.store.controller;
 
 import com.aiecomm.camp.common.dto.ApiResponse;
+import com.aiecomm.camp.modules.store.dto.DomainDto;
 import com.aiecomm.camp.modules.store.dto.StoreDto;
+import com.aiecomm.camp.modules.store.entity.Domain;
 import com.aiecomm.camp.modules.store.entity.Store;
 import com.aiecomm.camp.modules.store.serviceimpl.StoreServiceImpl;
 import com.aiecomm.camp.security.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,6 +28,9 @@ public class StoreController {
 
     @Autowired
     private JwtUtils jwtUtils;
+
+    Logger logger= LoggerFactory.getLogger(StoreController.class);
+
 
     @GetMapping("/store")
     public ApiResponse<?> checkStoreForTheUser(HttpServletRequest request) {
@@ -68,5 +75,37 @@ public class StoreController {
         }
 
         return ApiResponse.error("Something went wrong while creating store");
+    }
+
+
+
+
+
+    @GetMapping("/domains")
+    public ApiResponse<List<DomainDto>> getStoreDomains(@RequestParam Long storeId) {
+        List<DomainDto> result = null;
+        try {
+            result = storeServiceImpl.getStoreDomain(storeId);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error(e.getMessage());
+        }
+        return ApiResponse.success(result);
+    }
+
+    @GetMapping({"/domains/free", "/domains/check", "/v1/domains/free", "/v1/domains/check"})
+    public ApiResponse<List<DomainDto>> findFreeDomains(@RequestParam(value = "name", required = false) String name) {
+        List<DomainDto> result = null;
+        try {
+            if (name == null || name.trim().isEmpty()) {
+                return ApiResponse.success(java.util.Collections.emptyList());
+            }
+            result = storeServiceImpl.findFreeDomains(name);
+        } catch (Exception e) {
+            e.printStackTrace();
+            logger.error("Error finding free domains for name {}: {}", name, e.getMessage());
+            return ApiResponse.error("Failed to check domain availability: " + e.getMessage());
+        }
+        return ApiResponse.success(result != null ? result : java.util.Collections.emptyList());
     }
 }
