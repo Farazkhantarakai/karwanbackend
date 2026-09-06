@@ -1,9 +1,12 @@
 package com.aiecomm.camp.security;
 
+import com.aiecomm.camp.core.TenantContext;
+import jakarta.persistence.EntityManager;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.hibernate.Session;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -28,6 +31,7 @@ import java.io.IOException;
  * You can modify or extend the custom validation rules in doFilterInternal as needed.
  */
 import java.time.Instant;
+import java.util.UUID;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -38,12 +42,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final RedisTemplate<String,String> redisTemplate;
 
+   private final EntityManager entityManager;
 
     private final CustomUserDetailsService customUserDetailsService;
 
-    JwtAuthenticationFilter(JwtUtils jwtUtils,RedisTemplate<String,String> redisTemplate,CustomUserDetailsService customUserDetailsService){
+    JwtAuthenticationFilter(JwtUtils jwtUtils, RedisTemplate<String,String> redisTemplate, TenantContext tenantContext, EntityManager entityManager, CustomUserDetailsService customUserDetailsService){
         this.jwtUtils=jwtUtils;
         this.redisTemplate=redisTemplate;
+        this.entityManager = entityManager;
         this.customUserDetailsService=customUserDetailsService;
 
     }
@@ -57,6 +63,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String jwt = parseJwt(request);
 
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
+
+               UUID tenantId= jwtUtils.getTenantIdFromToken(jwt);
+
                 // 2. Redis Blacklist Check
                 boolean isBlacklisted = false;
                 try {
@@ -86,17 +95,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 userDetails.getAuthorities()
                         );
 
+                TenantContext.setTenantId(tenantId);
+
+                try {
+                    Session session = entityManager.unwrap(Session.class);
+                    session.enableFilter("tenantFilter").setParameter("tenantId", tenantId);
+                } catch (Exception filterEx) {
+                    logger.warn("Could not enable tenantFilter: " + filterEx.getMessage());
+                }
+
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
                 // Set SecurityContext
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-        } catch (Exception e) {
-            logger.error("Cannot set user authentication in SecurityContext: {}", e);
-        }
 
-        // Continue filter chain
-        filterChain.doFilter(request, response);
+            // Continue filter chain
+            filterChain.doFilter(request, response);
+        } catch (Exception e) {
+            logger.error("Error in JwtAuthenticationFilter: {}", e);
+            filterChain.doFilter(request, response);
+        } finally {
+            TenantContext.clear();
+        }
     }
 
 

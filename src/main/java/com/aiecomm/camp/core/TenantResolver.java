@@ -1,4 +1,4 @@
-package com.aiecomm.camp.tenantConfig;
+package com.aiecomm.camp.core;
 
 import org.checkerframework.checker.initialization.qual.Initialized;
 import org.checkerframework.checker.nullness.qual.NonNull;

@@ -1,5 +1,6 @@
 package com.aiecomm.camp.modules.store.serviceimpl;
 
+import com.aiecomm.camp.core.TenantContext;
 import com.aiecomm.camp.modules.store.StoreEnums.DomainStatus;
 import com.aiecomm.camp.modules.store.StoreEnums.SSLSTATUS;
 import com.aiecomm.camp.modules.store.StoreEnums.StoreStatus;
@@ -54,81 +55,87 @@ public class StoreServiceImpl implements StoreService {
         return tenantStores != null ? tenantStores : java.util.Collections.emptyList();
     }
 
+
+
+
+
+    @Override
     public Store createStoreAgainstTheTenant(UUID tenantId, String domainName, String storeName) {
-try {
-    Optional<Tenant> tenant = tenantRepository.findById(tenantId);
+        try {
+            if (tenantId == null) {
+                logger.error("tenantId is null while creating store");
+                return null;
+            }
 
-   String dummyDomain= getDomainDummyName();
-   String basePath="https://";
+            Optional<Tenant> tenant = tenantRepository.findById(tenantId);
+            if (tenant.isPresent()) {
+                String dummyDomain = (domainName != null && !domainName.trim().isEmpty())
+                        ? domainName.trim()
+                        : getDomainDummyName();
+                String basePath = "https://";
 
-    if (tenant.isPresent()) {
+                Domain domain = new Domain();
+                domain.setName(dummyDomain);
+                domain.setDomainlink(basePath + dummyDomain + platformPrefix);
+                domain.setUpdatedOn(null);
+                domain.setIsVerified(true);
+                domain.setIsPrimary(true);
+                domain.setIsCustom(false);
+                domain.setSslstatus(SSLSTATUS.NOTACTIVE);
+                domain.setDnsConfigured(false);
+                domain.setDomainStatus(DomainStatus.ACTIVE);
+                domain.setTarget("cname.karwan.pk");
+                domain.setCreatedOn(Instant.now());
 
-        Domain domain=new Domain();
+                Store store = new Store();
+                store.setTenant(tenant.get());
+                store.setDomainname(dummyDomain);
+                store.setStatus(StoreStatus.IsActive);
+                store.setStorename(storeName);
+                store.setTrailStart(Instant.now());
+                store.setSlug(storeName != null ? storeName.toLowerCase() : dummyDomain.toLowerCase());
+                store.setTrailEnd(Instant.now().plus(Duration.ofDays(15)));
+                store.setCreatedOn(Instant.now());
+                store.setUpdatedOn(Instant.now());
+                store.setCreatedBy("System");
+                store.setUpdatedBy("System");
+                store.addDomain(domain);
 
-        domain.setName(dummyDomain);
-        domain.setDomainlink(basePath+dummyDomain+platformPrefix);
-        domain.setUpdatedOn(null);
-        domain.setIsVerified(true);
-        domain.setIsPrimary(true);
-        domain.setIsCustom(false);
-        domain.setSslstatus(SSLSTATUS.NOTACTIVE);
-        domain.setDnsConfigured(false);
-        domain.setDomainStatus(DomainStatus.ACTIVE);
-        domain.setTarget("cname.karwan.pk");
-        domain.setCreatedOn(Instant.now());
+                storeRepository.save(store);
 
-        Store store = new Store();
-        store.setTenant(tenant.get());
-        store.setDomainname(getDomainDummyName());
-        store.setStatus(StoreStatus.IsActive);
-        store.setStorename(storeName);
-        store.setTrailStart(Instant.now());
-        store.setSlug(storeName.toLowerCase());
-        store.setTrailEnd(Instant.now().plus(Duration.ofDays(15)));
-        store.setCreatedOn(Instant.now());
-        store.setUpdatedOn(Instant.now());
-        store.setCreatedBy("System");
-        store.setUpdatedBy("System");
-        store.addDomain(domain);
+                return store;
+            }
+        } catch (Exception e) {
+            logger.error("Store cannot be saved, something went wrong: {}", e.getMessage(), e);
+        }
 
-        storeRepository.save(store);
-
-        return store;
+        return null;
     }
 
-} catch (Exception e) {
-    logger.info("store cannot be saved something went wrong" +e.getMessage());
-}
-
-return null;
-    }
-
-
-    String getDomainDummyName(){
+    String getDomainDummyName() {
         UUID uuid = UUID.randomUUID();
         int sixDigits = Math.abs(uuid.hashCode()) % 1000000;
         String digits = String.format("%06d", sixDigits);
-       return  digits.substring(0, 3) + "-" + digits.substring(3);
+        return digits.substring(0, 3) + "-" + digits.substring(3);
     }
 
-
+    @Override
     public List<DomainDto> getStoreDomain(Long storeId) {
+        List<DomainDto> domainDto = new ArrayList<>();
+        if (storeId == null) {
+            return domainDto;
+        }
 
-        List<DomainDto> domainDto=new ArrayList<>();
-
-
-       Optional<List<Domain>> domains=domainRepository.findByStore_StoreId(storeId);
-
-        logger.info("domains for the store "+storeId +" domains "+domains.get());
-
-        for(Domain domain:domains.get()){
-
-         DomainDto result=   DomainDto.fromEntity(domain);
-            domainDto.add(result);
+        Optional<List<Domain>> domains = domainRepository.findByStore_StoreId(storeId);
+        if (domains.isPresent() && domains.get() != null) {
+            logger.info("domains for the store {}: {}", storeId, domains.get());
+            for (Domain domain : domains.get()) {
+                DomainDto result = DomainDto.fromEntity(domain);
+                domainDto.add(result);
+            }
         }
         return domainDto;
     }
-
 
     @Override
     public List<DomainDto> findFreeDomains(String name) {
@@ -148,5 +155,15 @@ return null;
                 .toList();
     }
 
+    @Override
+    public Store getStoreForUser(Long storeId) {
+        UUID currentTenantId = TenantContext.getTenantId();
+        if (currentTenantId == null) {
+            throw new com.aiecomm.camp.common.exception.StoreNotFoundException("Access Denied: Tenant context not found");
+        }
 
+        return storeRepository.findById(storeId)
+                .filter(store -> store.getTenant() != null && currentTenantId.equals(store.getTenant().getTenantId()))
+                .orElseThrow(() -> new com.aiecomm.camp.common.exception.StoreNotFoundException("Access Denied or Store Not Found"));
+    }
 }

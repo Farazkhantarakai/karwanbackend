@@ -1,6 +1,10 @@
 spring:
   application:
     name: Karwan
+
+  threads:
+    virtual:
+      enabled: true
   datasource:
     url: jdbc:postgresql://localhost:5432/karwan
     username: ${DB_NAME}

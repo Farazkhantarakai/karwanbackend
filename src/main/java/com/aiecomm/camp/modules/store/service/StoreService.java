@@ -8,8 +8,14 @@ import java.util.UUID;
 
 public interface StoreService {
 
-  public List<Store> getStoreStatusForUser(UUID email);
+    List<Store> getStoreStatusForUser(UUID tenantId);
 
-  public List<DomainDto> findFreeDomains(String name);
+    Store createStoreAgainstTheTenant(UUID tenantId, String domainName, String storeName);
+
+    List<DomainDto> getStoreDomain(Long storeId);
+
+    List<DomainDto> findFreeDomains(String name);
+
+    Store getStoreForUser(Long storeId);
 
 }

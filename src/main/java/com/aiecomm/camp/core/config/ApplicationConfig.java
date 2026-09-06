@@ -1,9 +1,12 @@
 package com.aiecomm.camp.core.config;
 
 import com.aiecomm.camp.security.CustomUserDetailsService;
+import com.aiecomm.camp.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
@@ -34,4 +37,13 @@ public class ApplicationConfig {
     public AuthenticationManager authenticationManager() throws Exception {
       return new ProviderManager(authenticationProvider());
     }
+
+
+    @Bean
+  public FilterRegistrationBean<JwtAuthenticationFilter>  tenantFilterRegistration(JwtAuthenticationFilter filter){
+        FilterRegistrationBean<JwtAuthenticationFilter>  reg=new FilterRegistrationBean<>(filter);
+        reg.setOrder(Ordered.LOWEST_PRECEDENCE);
+        return reg;
+    }
+
 }
