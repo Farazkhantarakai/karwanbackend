@@ -4,31 +4,25 @@ import com.aiecomm.camp.modules.order.entity.Order;
 import com.aiecomm.camp.modules.product.entity.Product;
 import com.aiecomm.camp.modules.store.StoreEnums.StoreStatus;
 import com.aiecomm.camp.modules.tenant.entity.Tenant;
+import com.aiecomm.camp.core.entity.BaseTenantEntity;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import net.minidev.json.annotate.JsonIgnore;
-import org.hibernate.annotations.Filter;
-import org.hibernate.annotations.FilterDef;
-import org.hibernate.annotations.ParamDef;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Entity
 @Table(name = "stores")
-@FilterDef(name = "tenantFilter", parameters = @ParamDef(name = "tenantId", type = UUID.class))
-@Filter(name = "tenantFilter", condition = "tenant_id = :tenantId")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @ToString(exclude = {"domains", "locations", "settings", "products", "orders"})
-@EqualsAndHashCode(exclude = {"domains", "locations", "settings", "products", "orders"})
-public class Store {
+@EqualsAndHashCode(callSuper = false, exclude = {"domains", "locations", "settings", "products", "orders"})
+public class Store extends BaseTenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

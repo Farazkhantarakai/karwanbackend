@@ -4,7 +4,6 @@ import com.aiecomm.camp.common.dto.ApiResponse;
 import com.aiecomm.camp.core.TenantContext;
 import com.aiecomm.camp.modules.store.dto.DomainDto;
 import com.aiecomm.camp.modules.store.dto.StoreDto;
-import com.aiecomm.camp.modules.store.entity.Store;
 import com.aiecomm.camp.modules.store.service.StoreService;
 import com.aiecomm.camp.security.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static com.aiecomm.camp.security.JwtAuthenticationFilter.parseJwt;
 
@@ -41,12 +39,8 @@ public class StoreController {
             return ApiResponse.error("Invalid token or tenant");
         }
 
-        List<Store> stores = storeService.getStoreStatusForUser(tenantId);
-        List<StoreDto> storeDtos = stores.stream()
-                .map(StoreDto::fromEntity)
-                .collect(Collectors.toList());
-
-        return ApiResponse.success("Stores retrieved successfully", storeDtos);
+        List<StoreDto> stores = storeService.getStoreStatusForUser(tenantId);
+        return ApiResponse.success("Stores retrieved successfully", stores);
     }
 
     /**
@@ -58,8 +52,8 @@ public class StoreController {
         log.info("REST: GET store by id: {}", storeId);
         ensureTenantContext(request);
 
-        Store store = storeService.getStoreForUser(storeId);
-        return ApiResponse.success("Store retrieved successfully", StoreDto.fromEntity(store));
+        StoreDto store = storeService.getStoreForUser(storeId);
+        return ApiResponse.success("Store retrieved successfully", store);
     }
 
     /**
@@ -80,14 +74,14 @@ public class StoreController {
             return ApiResponse.error("Tenant ID is required to create a store");
         }
 
-        Store store = storeService.createStoreAgainstTheTenant(
+        StoreDto store = storeService.createStoreAgainstTheTenant(
                 tenantId,
                 storeDto.getDomainname(),
                 storeDto.getStorename()
         );
 
         if (store != null) {
-            return ApiResponse.success("Store created successfully", StoreDto.fromEntity(store));
+            return ApiResponse.success("Store created successfully", store);
         }
 
         return ApiResponse.error("Something went wrong while creating store");

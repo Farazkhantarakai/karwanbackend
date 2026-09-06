@@ -1,10 +1,12 @@
 package com.aiecomm.camp.modules.store.serviceimpl;
 
+import com.aiecomm.camp.common.exception.StoreNotFoundException;
 import com.aiecomm.camp.core.TenantContext;
 import com.aiecomm.camp.modules.store.StoreEnums.DomainStatus;
 import com.aiecomm.camp.modules.store.StoreEnums.SSLSTATUS;
 import com.aiecomm.camp.modules.store.StoreEnums.StoreStatus;
 import com.aiecomm.camp.modules.store.dto.DomainDto;
+import com.aiecomm.camp.modules.store.dto.StoreDto;
 import com.aiecomm.camp.modules.store.entity.Domain;
 import com.aiecomm.camp.modules.store.entity.Store;
 import com.aiecomm.camp.modules.store.repository.DomainRepository;
@@ -12,58 +14,54 @@ import com.aiecomm.camp.modules.store.repository.StoreRepository;
 import com.aiecomm.camp.modules.store.service.StoreService;
 import com.aiecomm.camp.modules.tenant.entity.Tenant;
 import com.aiecomm.camp.modules.tenant.repository.TenantRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class StoreServiceImpl implements StoreService {
 
-    @Autowired
-    private StoreRepository storeRepository;
-
-    @Autowired
-    private TenantRepository tenantRepository;
-
-    @Autowired
-    private DomainRepository domainRepository;
-
+    private final StoreRepository storeRepository;
+    private final TenantRepository tenantRepository;
+    private final DomainRepository domainRepository;
 
     @Value("${app-domain-suffix}")
     private String platformPrefix;
 
-    Logger logger= LoggerFactory.getLogger(StoreServiceImpl.class);
-
-
     @Override
-    public List<Store> getStoreStatusForUser(UUID tenantId) {
+    public List<StoreDto> getStoreStatusForUser(UUID tenantId) {
         if (tenantId == null) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
         List<Store> tenantStores = storeRepository.findByTenant_TenantId(tenantId);
-        return tenantStores != null ? tenantStores : java.util.Collections.emptyList();
+        if (tenantStores == null) {
+            return Collections.emptyList();
+        }
+        return tenantStores.stream()
+                .map(StoreDto::fromEntity)
+                .collect(Collectors.toList());
     }
 
-
-
-
-
     @Override
-    public Store createStoreAgainstTheTenant(UUID tenantId, String domainName, String storeName) {
+    @Transactional
+    public StoreDto createStoreAgainstTheTenant(UUID tenantId, String domainName, String storeName) {
         try {
             if (tenantId == null) {
-                logger.error("tenantId is null while creating store");
+                log.error("tenantId is null while creating store");
                 return null;
             }
 
@@ -103,10 +101,10 @@ public class StoreServiceImpl implements StoreService {
 
                 storeRepository.save(store);
 
-                return store;
+                return StoreDto.fromEntity(store);
             }
         } catch (Exception e) {
-            logger.error("Store cannot be saved, something went wrong: {}", e.getMessage(), e);
+            log.error("Store cannot be saved, something went wrong: {}", e.getMessage(), e);
         }
 
         return null;
@@ -128,7 +126,7 @@ public class StoreServiceImpl implements StoreService {
 
         Optional<List<Domain>> domains = domainRepository.findByStore_StoreId(storeId);
         if (domains.isPresent() && domains.get() != null) {
-            logger.info("domains for the store {}: {}", storeId, domains.get());
+            log.info("domains for the store {}: {}", storeId, domains.get());
             for (Domain domain : domains.get()) {
                 DomainDto result = DomainDto.fromEntity(domain);
                 domainDto.add(result);
@@ -156,14 +154,15 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
-    public Store getStoreForUser(Long storeId) {
+    public StoreDto getStoreForUser(Long storeId) {
         UUID currentTenantId = TenantContext.getTenantId();
         if (currentTenantId == null) {
-            throw new com.aiecomm.camp.common.exception.StoreNotFoundException("Access Denied: Tenant context not found");
+            throw new StoreNotFoundException("Access Denied: Tenant context not found");
         }
 
         return storeRepository.findById(storeId)
                 .filter(store -> store.getTenant() != null && currentTenantId.equals(store.getTenant().getTenantId()))
-                .orElseThrow(() -> new com.aiecomm.camp.common.exception.StoreNotFoundException("Access Denied or Store Not Found"));
+                .map(StoreDto::fromEntity)
+                .orElseThrow(() -> new StoreNotFoundException("Access Denied or Store Not Found"));
     }
 }

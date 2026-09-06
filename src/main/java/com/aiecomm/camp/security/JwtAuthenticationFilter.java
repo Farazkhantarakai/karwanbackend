@@ -46,12 +46,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final CustomUserDetailsService customUserDetailsService;
 
-    JwtAuthenticationFilter(JwtUtils jwtUtils, RedisTemplate<String,String> redisTemplate, TenantContext tenantContext, EntityManager entityManager, CustomUserDetailsService customUserDetailsService){
-        this.jwtUtils=jwtUtils;
-        this.redisTemplate=redisTemplate;
+    public JwtAuthenticationFilter(JwtUtils jwtUtils, RedisTemplate<String, String> redisTemplate, EntityManager entityManager, CustomUserDetailsService customUserDetailsService) {
+        this.jwtUtils = jwtUtils;
+        this.redisTemplate = redisTemplate;
         this.entityManager = entityManager;
-        this.customUserDetailsService=customUserDetailsService;
-
+        this.customUserDetailsService = customUserDetailsService;
     }
 
     @Override
