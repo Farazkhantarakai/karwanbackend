@@ -4,6 +4,7 @@ import com.aiecomm.camp.common.dto.ApiResponse;
 import com.aiecomm.camp.core.TenantContext;
 import com.aiecomm.camp.modules.store.dto.DomainDto;
 import com.aiecomm.camp.modules.store.dto.StoreDto;
+import com.aiecomm.camp.modules.store.entity.Store;
 import com.aiecomm.camp.modules.store.service.StoreService;
 import com.aiecomm.camp.security.JwtUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -48,11 +49,11 @@ public class StoreController {
      * Accessible via GET /api/v1/store/{storeId} or /api/v1/stores/{storeId}.
      */
     @GetMapping({"/store/{storeId}", "/stores/{storeId}"})
-    public ApiResponse<StoreDto> getStoreById(@PathVariable Long storeId, HttpServletRequest request) {
+    public ApiResponse<List<StoreDto>> getStoreById(@PathVariable Long storeId, HttpServletRequest request) {
         log.info("REST: GET store by id: {}", storeId);
         ensureTenantContext(request);
 
-        StoreDto store = storeService.getStoreForUser(storeId);
+        List<StoreDto> store = storeService.getStoreForUser(storeId);
         return ApiResponse.success("Store retrieved successfully", store);
     }
 

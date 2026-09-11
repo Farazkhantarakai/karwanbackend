@@ -1,6 +1,7 @@
 package com.aiecomm.camp.modules.product.entity;
 
 import com.aiecomm.camp.modules.inventory.entity.Inventory;
+import com.aiecomm.camp.modules.media.entity.ProductImage;
 import com.aiecomm.camp.modules.store.entity.Store;
 import jakarta.persistence.*;
 import lombok.*;
@@ -15,8 +16,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"store", "productCategory", "inventories"})
-@EqualsAndHashCode(exclude = {"store", "productCategory", "inventories"})
+@ToString(exclude = {"store", "productCategory", "inventories", "productImages"})
+@EqualsAndHashCode(exclude = {"store", "productCategory", "inventories", "productImages"})
 public class Product {
 
     @Id
@@ -76,6 +77,11 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<Inventory> inventories = new ArrayList<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    @Builder.Default
+    private List<ProductImage> productImages = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

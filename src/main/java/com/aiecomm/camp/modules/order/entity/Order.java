@@ -1,5 +1,6 @@
 package com.aiecomm.camp.modules.order.entity;
 
+import com.aiecomm.camp.core.entity.BaseTenantEntity;
 import com.aiecomm.camp.modules.store.entity.Store;
 import com.aiecomm.camp.modules.tenant.entity.Tenant;
 import jakarta.persistence.*;
@@ -16,8 +17,8 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 @ToString(exclude = {"store", "tenant", "paymentMethod", "deliveryMode", "orderItems", "customers"})
-@EqualsAndHashCode(exclude = {"store", "tenant", "paymentMethod", "deliveryMode", "orderItems", "customers"})
-public class Order {
+@EqualsAndHashCode(exclude = {"store", "tenant", "paymentMethod", "deliveryMode", "orderItems", "customers"}, callSuper = false)
+public class Order  extends BaseTenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

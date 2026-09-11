@@ -1,0 +1,1 @@
+alter table  tenant_subscriptionplan rename to store_subscriptionplan;

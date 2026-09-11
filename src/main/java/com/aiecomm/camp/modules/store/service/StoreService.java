@@ -16,6 +16,6 @@ public interface StoreService {
 
     List<DomainDto> findFreeDomains(String name);
 
-    StoreDto getStoreForUser(Long storeId);
+    List<StoreDto> getStoreForUser(Long storeId);
 
 }

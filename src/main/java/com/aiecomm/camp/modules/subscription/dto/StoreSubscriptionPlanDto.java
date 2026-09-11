@@ -1,6 +1,6 @@
 package com.aiecomm.camp.modules.subscription.dto;
 
-import com.aiecomm.camp.modules.subscription.entity.TenantSubscriptionPlan;
+import com.aiecomm.camp.modules.subscription.entity.StoreSubscriptionPlan;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,15 +12,15 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TenantSubscriptionPlanDto {
+public class StoreSubscriptionPlanDto {
 
     private Long subId;
     private UUID tenantId;
     private Long subscriptionId;
 
-    public static TenantSubscriptionPlanDto fromEntity(TenantSubscriptionPlan entity) {
+    public static StoreSubscriptionPlanDto fromEntity(StoreSubscriptionPlan entity) {
         if (entity == null) return null;
-        return TenantSubscriptionPlanDto.builder()
+        return StoreSubscriptionPlanDto.builder()
                 .subId(entity.getSubId())
                 .tenantId(entity.getTenant() != null ? entity.getTenant().getTenantId() : null)
                 .subscriptionId(entity.getSubscriptionPlan() != null ? entity.getSubscriptionPlan().getSubscriptionId() : null)

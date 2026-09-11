@@ -25,6 +25,7 @@ public class User {
     @Column(nullable = false)
     private String name;
 
+//    no need to create index already this is unique
     @Column(nullable = false, unique = true)
     private String email;
 

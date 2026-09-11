@@ -154,7 +154,7 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
-    public StoreDto getStoreForUser(Long storeId) {
+    public List<StoreDto> getStoreForUser(Long storeId) {
         UUID currentTenantId = TenantContext.getTenantId();
         if (currentTenantId == null) {
             throw new StoreNotFoundException("Access Denied: Tenant context not found");
@@ -162,7 +162,7 @@ public class StoreServiceImpl implements StoreService {
 
         return storeRepository.findById(storeId)
                 .filter(store -> store.getTenant() != null && currentTenantId.equals(store.getTenant().getTenantId()))
-                .map(StoreDto::fromEntity)
-                .orElseThrow(() -> new StoreNotFoundException("Access Denied or Store Not Found"));
+                .map(StoreDto::fromEntity).stream().collect(Collectors.toList());
+
     }
 }

@@ -92,6 +92,38 @@ public class ProductController {
         return ApiResponse.error("Product not found or could not be deleted");
     }
 
+    @PostMapping("/stores/{storeId}/products/{productId}/images")
+    public ApiResponse<ProductDto> attachImages(
+            @PathVariable Long storeId,
+            @PathVariable Long productId,
+            @RequestBody List<Long> mediaAssetIds) {
+        log.info("REST: POST /api/v1/stores/{}/products/{}/images with {} assets", storeId, productId, mediaAssetIds != null ? mediaAssetIds.size() : 0);
+        try {
+            ProductDto updated = productService.attachImages(productId, storeId, mediaAssetIds);
+            return ApiResponse.success("Images attached successfully", updated);
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.error(e.getMessage());
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to attach images: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/stores/{storeId}/products/{productId}/images/{imageId}")
+    public ApiResponse<ProductDto> detachImage(
+            @PathVariable Long storeId,
+            @PathVariable Long productId,
+            @PathVariable Long imageId) {
+        log.info("REST: DELETE /api/v1/stores/{}/products/{}/images/{}", storeId, productId, imageId);
+        try {
+            ProductDto updated = productService.detachImage(productId, storeId, imageId);
+            return ApiResponse.success("Image detached successfully", updated);
+        } catch (IllegalArgumentException e) {
+            return ApiResponse.error(e.getMessage());
+        } catch (Exception e) {
+            return ApiResponse.error("Failed to detach image: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/categories")
     public ApiResponse<List<ProductCategoryDto>> getAllCategories() {
         log.info("REST: GET /api/v1/categories");

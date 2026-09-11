@@ -1,19 +1,22 @@
 package com.aiecomm.camp.modules.subscription.entity;
 
+import com.aiecomm.camp.core.entity.BaseTenantEntity;
 import com.aiecomm.camp.modules.tenant.entity.Tenant;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "tenant_subscriptionplan")
+@Table(name = "store_subscriptionplan")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class TenantSubscriptionPlan {
+@EqualsAndHashCode(callSuper = false)
+public class StoreSubscriptionPlan extends BaseTenantEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

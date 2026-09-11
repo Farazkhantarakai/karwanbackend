@@ -36,5 +36,5 @@ public class SubscriptionPlan {
 
     @OneToMany(mappedBy = "subscriptionPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<TenantSubscriptionPlan> tenantSubscriptionPlans = new ArrayList<>();
+    private List<StoreSubscriptionPlan> tenantSubscriptionPlans = new ArrayList<>();
 }

@@ -19,6 +19,10 @@ public interface ProductService {
 
     boolean deleteProduct(Long productId, Long storeId);
 
+    ProductDto attachImages(Long productId, Long storeId, List<Long> mediaAssetIds);
+
+    ProductDto detachImage(Long productId, Long storeId, Long imageId);
+
     List<ProductCategoryDto> getAllCategories();
 
     ProductCategoryDto createCategory(String categoryName);
