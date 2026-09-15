@@ -1,5 +1,7 @@
 package com.aiecomm.camp.core.security;
 
+import com.aiecomm.camp.modules.commerce.filter.StorefrontContextFilter;
+import com.aiecomm.camp.modules.commerce.filter.StorefrontRateLimitFilter;
 import com.aiecomm.camp.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -28,6 +30,12 @@ public class SecurityConfig {
     @Autowired
     private CorsConfigurationSource corsConfigurationSource;
 
+    @Autowired
+    private StorefrontRateLimitFilter storefrontRateLimitFilter;
+
+    @Autowired
+    private StorefrontContextFilter storefrontContextFilter;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -40,6 +48,7 @@ public class SecurityConfig {
                     "/api/auth/**",
                     "/api/domains/**",
                     "/api/v1/domains/**",
+                    "/api/storefront/**",   // CommerceContext is the security boundary — not Spring Security
                     "/error",
                     "/v3/api-docs/**",
                     "/swagger-ui/**",
@@ -47,6 +56,9 @@ public class SecurityConfig {
                 ).permitAll()
                 .anyRequest().authenticated()
             )
+            // Commerce filters run before JWT filter — they handle storefront/** only
+            .addFilterBefore(storefrontRateLimitFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(storefrontContextFilter, StorefrontRateLimitFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
