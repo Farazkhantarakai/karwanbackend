@@ -1,5 +1,7 @@
 package com.aiecomm.camp.modules.commerce.pricing;
 
+import org.springframework.stereotype.Service;
+
 import java.math.BigDecimal;
 
 /**
@@ -12,6 +14,7 @@ import java.math.BigDecimal;
  * Future migration: when products.product_price column becomes NUMERIC(19,4),
  * only this implementation changes — the interface and all callers stay the same.
  */
+
 public interface PricingService {
 
     /**

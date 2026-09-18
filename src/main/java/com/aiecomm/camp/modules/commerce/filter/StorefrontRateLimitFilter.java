@@ -57,9 +57,15 @@ public class StorefrontRateLimitFilter extends OncePerRequestFilter {
         String bucket = resolveBucket(method, uri);
         String key    = "rl:storefront:" + bucket + ":" + ip;
 
-        Long count = redisTemplate.opsForValue().increment(key);
-        if (count != null && count == 1L) {
-            redisTemplate.expire(key, WINDOW_SECONDS, TimeUnit.SECONDS);
+        Long count = null;
+        try {
+            count = redisTemplate.opsForValue().increment(key);
+            if (count != null && count == 1L) {
+                redisTemplate.expire(key, WINDOW_SECONDS, TimeUnit.SECONDS);
+            }
+        } catch (Exception e) {
+            log.warn("Rate limit Redis error (failing open): {}", e.getMessage());
+            // Fail open: don't block legitimate users if Redis has a transient error
         }
 
         if (count != null && count > limit) {

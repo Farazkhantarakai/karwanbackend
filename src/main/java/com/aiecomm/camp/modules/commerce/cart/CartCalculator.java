@@ -41,9 +41,11 @@ public final class CartCalculator {
                     .multiply(BigDecimal.valueOf(item.getQuantity()))
                     .setScale(4, RoundingMode.HALF_UP);
 
-            // line discount (NoOp returns ZERO in M1)
-            BigDecimal discount = discountService
-                    .calculateLineDiscount(item, ctx)
+            // line discount (defaults to ZERO if null or NoOp)
+            BigDecimal rawDiscount = discountService != null
+                    ? discountService.calculateLineDiscount(item, ctx)
+                    : null;
+            BigDecimal discount = (rawDiscount != null ? rawDiscount : BigDecimal.ZERO)
                     .setScale(4, RoundingMode.HALF_UP);
 
             // line total = subtotal - discount, minimum 0
@@ -57,9 +59,11 @@ public final class CartCalculator {
             subtotal = subtotal.add(lineSubtotal);
         }
 
-        // Cart-level discount (NoOp in M1)
-        BigDecimal cartDiscount = discountService
-                .calculateCartDiscount(cart, ctx)
+        // Cart-level discount (defaults to ZERO if null or NoOp)
+        BigDecimal rawCartDiscount = discountService != null
+                ? discountService.calculateCartDiscount(cart, ctx)
+                : null;
+        BigDecimal cartDiscount = (rawCartDiscount != null ? rawCartDiscount : BigDecimal.ZERO)
                 .setScale(4, RoundingMode.HALF_UP);
 
         // Shipping and tax are stubs in M1
